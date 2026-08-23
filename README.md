@@ -3,6 +3,10 @@
 > **This is a living repository.** The lab is under active development — the
 > topology diagram, this overview, and the project list evolve as the
 > environment grows. Watch the commit history to see the build in motion.
+>
+> Part of a connected set: this hub · the
+> [profile landing page](https://github.com/117caseyallen-NetAdm) · and each
+> project repo below. All three are kept in sync as the lab changes.
 
 A dual-site enterprise network built on real hardware — no GNS3, no EVE-NG.
 Two firewalled sites joined into a single routing domain across a site-to-site
