@@ -228,6 +228,35 @@ The SSD's **write path has failed** after 43,105 power-on hours and ~28 TB
 written. Reads are unaffected. No SMART attribute measures "writes became 200×
 slower," so nothing flagged it.
 
+### Follow-up: a full power cycle didn't help — and exposed one more lesson
+
+Cold power-off, on the theory that the controller might re-initialize out of a
+bad state. It didn't. But the read results were instructive:
+
+```
+Temperature:  43 °C  (coolest yet — thermal definitively excluded)
+Write:        1.9 MB/s  (was 1.7 — unchanged)
+
+Read, three consecutive runs of hdparm -t:
+              1.52 MB/s
+           1457.34 MB/s
+            657.28 MB/s
+```
+
+**SATA 3.0 is 6 Gb/s — roughly 600 MB/s of real throughput after encoding
+overhead. 1457 MB/s and 657 MB/s are physically impossible over this link.**
+Those are page-cache reads, not disk reads. The only honest number is the cold
+read: **1.52 MB/s**.
+
+So the read path is degrading too, and the wild variance between identical
+back-to-back runs is itself a failure signature — healthy storage returns
+consistent numbers.
+
+**Lesson:** sanity-check every benchmark against the physical ceiling of the
+interface it crossed. A result that exceeds what the bus can carry is measuring
+something other than what you think — usually cache. Taken at face value, two of
+those three numbers would have led to exactly the wrong conclusion.
+
 Resolution is storage replacement. Worth noting for anyone with the same
 machine: the SM1024F is Apple's proprietary blade format, **not M.2** — so the
 options are an OEM pull, a third-party adapter with inconsistent MacPro6,1
