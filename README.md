@@ -18,6 +18,12 @@ and a growing services layer. Domain: `casey.corp`.
 *Diagram source: [`topology/CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio) —
 updated as the lab changes.*
 
+## Write-ups
+
+| Document | What it covers |
+|---|---|
+| [Diagnosing a Failing SSD](docs/diagnosing-a-failing-ssd.md) | A "the VM is slow" complaint that took four days and two OS reinstalls to trace to an SSD whose **write path had failed while reads stayed at 367 MB/s** — and passed SMART the whole time. Ten hypotheses, each eliminated with a measurement. Includes a side finding on Apple hardware having no fan control under Linux. |
+
 ## What this lab demonstrates
 
 | Capability | How it shows up here |
