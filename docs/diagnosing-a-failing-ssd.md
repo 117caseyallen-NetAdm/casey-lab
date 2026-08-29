@@ -5,10 +5,14 @@
 > and every early hypothesis was wrong for an interesting reason.
 
 **System:** Proxmox VE on an Apple Mac Pro (MacPro6,1, 2013) — Xeon E5-1650 v2,
-31 GB RAM, Apple SSD SM1024F (1 TB)
+31 GB RAM, Apple SSD SM1024F (1 TB, AHCI-over-PCIe via a Samsung S4LN053X01
+controller — *not* SATA, which matters later)
 **Presenting symptom:** "the Windows VM is slow"
-**Actual cause:** SSD write-path failure — reads at 367 MB/s, writes at 1.7 MB/s
-**Cost of getting there:** four days, two full OS reinstalls
+**Actual cause:** SSD write-path failure — reads at **1.1 GB/s**, writes at
+**1.9 MB/s**
+**Cost of getting there:** four days, two full OS reinstalls, and one wrong
+conclusion I had to walk back — documented below, because the correction is the
+most useful part
 
 ---
 
@@ -228,34 +232,62 @@ The SSD's **write path has failed** after 43,105 power-on hours and ~28 TB
 written. Reads are unaffected. No SMART attribute measures "writes became 200×
 slower," so nothing flagged it.
 
-### Follow-up: a full power cycle didn't help — and exposed one more lesson
+### Follow-up: a power cycle didn't help — and I misread the read results
 
 Cold power-off, on the theory that the controller might re-initialize out of a
-bad state. It didn't. But the read results were instructive:
+bad state. Writes were unchanged at **1.9 MB/s**, at 43 °C — the coolest the
+drive had run all week, definitively excluding thermal.
+
+The reads were erratic across three consecutive `hdparm -t` runs:
 
 ```
-Temperature:  43 °C  (coolest yet — thermal definitively excluded)
-Write:        1.9 MB/s  (was 1.7 — unchanged)
-
-Read, three consecutive runs of hdparm -t:
-              1.52 MB/s
-           1457.34 MB/s
-            657.28 MB/s
+   1.52 MB/s
+1457.34 MB/s
+ 657.28 MB/s
 ```
 
-**SATA 3.0 is 6 Gb/s — roughly 600 MB/s of real throughput after encoding
-overhead. 1457 MB/s and 657 MB/s are physically impossible over this link.**
-Those are page-cache reads, not disk reads. The only honest number is the cold
-read: **1.52 MB/s**.
+**My first conclusion was wrong, and the error is worth more than the finding.**
 
-So the read path is degrading too, and the wild variance between identical
-back-to-back runs is itself a failure signature — healthy storage returns
-consistent numbers.
+I reasoned: `smartctl` reports `SATA Version is: SATA 3.0, 6.0 Gb/s`, SATA 3.0
+carries ~600 MB/s after encoding overhead, therefore 1457 and 657 MB/s are
+physically impossible and must be page-cache reads — leaving 1.52 MB/s as the
+only honest number, and the read path degrading too.
 
-**Lesson:** sanity-check every benchmark against the physical ceiling of the
-interface it crossed. A result that exceeds what the bus can carry is measuring
-something other than what you think — usually cache. Taken at face value, two of
-those three numbers would have led to exactly the wrong conclusion.
+Then a 2 GB O_DIRECT read from the raw device returned **1.1 GB/s sustained**.
+O_DIRECT bypasses the page cache, so that number is coming off the hardware —
+and it's roughly double what a real SATA 3.0 link can carry.
+
+Checking what the drive is actually attached to:
+
+```bash
+lspci -nn | grep -i -E 'sata|ahci|non-volatile|storage'
+# 0e:00.0 SATA controller [0106]: Samsung S4LN053X01 AHCI SSD Controller(Apple slot)
+
+udevadm info -q property -n /dev/sda | grep -iE 'ID_BUS|ID_PATH='
+# ID_BUS=ata
+# ID_PATH=pci-0000:0e:00.0-ata-1.0
+```
+
+**The controller is a PCIe device.** Apple's blades use an AHCI controller
+sitting directly on the PCIe bus — it registers as storage class `0106` and
+speaks ATA, but there is no SATA link in the machine. `smartctl`'s "6.0 Gb/s" is
+the **ATA protocol layer reporting nominal capability**, not the physical data
+path. PCIe 2.0 ×4 puts the real ceiling near 1.5 GB/s, which is exactly where the
+measurements land.
+
+So the fast readings were real. **Reads are largely healthy**, with intermittent
+stalls (that 1.52 MB/s outlier).
+
+**Revised lesson — better than the original:** sanity-checking a benchmark
+against the interface's physical ceiling is sound practice, *but you have to
+verify which interface you're actually on.* I trusted one tool's protocol report
+over a direct measurement, and it pointed me at the wrong ceiling. When a
+measurement and an assumption disagree, re-examine the assumption — `lspci` and
+`udevadm` answer "what is this actually attached to" in seconds.
+
+**The core finding survives, and gets sharper:** reads at **1.1 GB/s**, writes at
+**1.9 MB/s**. That's not the ~200× asymmetry stated above — it's closer to
+**600×**. The write path is the failure; the read path is fine.
 
 Resolution is storage replacement. Worth noting for anyone with the same
 machine: the SM1024F is Apple's proprietary blade format, **not M.2** — so the
