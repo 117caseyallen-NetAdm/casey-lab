@@ -18,6 +18,20 @@ and a growing services layer. Domain: `casey.corp`.
 *Diagram source: [`topology/CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio) —
 updated as the lab changes.*
 
+## The actual hardware
+
+No GNS3, no EVE-NG, no cloud instances pretending to be switches. Every device in
+the diagram above is a physical box on a shelf I built.
+
+| | |
+|:--:|:--:|
+| ![Lab rack, wide](photos/lab-rack-wide.jpg) | ![Lab rack, detail](photos/lab-rack-detail.jpg) |
+
+Visible: the 2013 Mac Pro running Proxmox (`PROX-LAB`), stacked Cisco Catalyst
+switching, the TP-Link Deco handling the residential edge, and a jumpbox for
+out-of-band access when the VPN is down — which, as the troubleshooting log
+below documents, is a lesson learned the hard way.
+
 ## Write-ups
 
 | Document | What it covers |
