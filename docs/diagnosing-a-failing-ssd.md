@@ -199,7 +199,9 @@ hdparm -t /dev/sda
 # Timing buffered disk reads: 1104 MB in 3.00 seconds = 367.74 MB/sec
 
 dd if=/dev/zero of=/var/lib/vz/dd-test bs=1M count=2000 oflag=direct conv=fdatasync
-# 508 MB copied, 292.602 s, 1.7 MB/s
+# 508 MB copied, 292.602 s, 1.7 MB/s     <- interrupted after ~5 min; the rate
+#                                           was established long before the
+#                                           full 2 GB would have finished
 ```
 
 **Reads: 367 MB/s. Writes: 1.7 MB/s. A ~200× asymmetry.**

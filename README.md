@@ -1,96 +1,89 @@
 # CASEY-LAB — Dual-Site Enterprise Homelab
 
-> **This is a living repository.** The lab is under active development — the
-> topology diagram, this overview, and the project list evolve as the
-> environment grows. Watch the commit history to see the build in motion.
->
-> Part of a connected set: this hub · the
-> [profile landing page](https://github.com/117caseyallen-NetAdm) · and each
-> project repo below. All three are kept in sync as the lab changes.
+A dual-site enterprise network on physical hardware. Two firewalled sites joined
+into a single OSPF routing domain across a route-based IKEv2 IPsec tunnel, with
+separated data and management planes, aggregated uplinks, and a services layer
+that grows as I build it.
 
-A dual-site enterprise network built on real hardware — no GNS3, no EVE-NG.
-Two firewalled sites joined into a single routing domain across a site-to-site
-IPsec tunnel, with separated data and management planes, aggregated uplinks,
-and a growing services layer. Domain: `casey.corp`.
+Domain: `casey.corp`. Documentation here is updated as the lab changes.
+
+Part of a set: this hub · the [profile](https://github.com/117caseyallen-NetAdm)
+· and the project repos below.
 
 ![CASEY-LAB Topology](topology/CA-LAB-Topo.svg)
 
-*Diagram source: [`topology/CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio) —
-updated as the lab changes.*
+*Source: [`topology/CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio)*
 
-## The actual hardware
+## Projects
 
-No GNS3, no EVE-NG, no cloud instances pretending to be switches. Every device in
-the diagram above is a physical box on a shelf I built.
-
-| | |
-|:--:|:--:|
-| ![Lab rack, wide](photos/lab-rack-wide.jpg) | ![Lab rack, detail](photos/lab-rack-detail.jpg) |
-
-Visible: the 2013 Mac Pro running Proxmox (`PROX-LAB`), stacked Cisco Catalyst
-switching, the TP-Link Deco handling the residential edge, and a jumpbox for
-out-of-band access when the VPN is down — which, as the troubleshooting log
-below documents, is a lesson learned the hard way.
+| Repo | What it covers |
+|---|---|
+| [homelab-domain-services](https://github.com/117caseyallen-NetAdm/homelab-domain-services) | AD DS, AD-integrated DNS with forward and reverse zones, DHCP with cross-site relay, time hierarchy, cross-site domain join |
+| [homelab-wireguard](https://github.com/117caseyallen-NetAdm/homelab-wireguard) | Routed (non-NATed) WireGuard VPN, client pool redistributed into OSPF |
 
 ## Write-ups
 
 | Document | What it covers |
 |---|---|
-| [Diagnosing a Failing SSD](docs/diagnosing-a-failing-ssd.md) | A "the VM is slow" complaint that took four days and two OS reinstalls to trace to an SSD whose **write path had failed while reads stayed at 367 MB/s** — and passed SMART the whole time. Ten hypotheses, each eliminated with a measurement. Includes a side finding on Apple hardware having no fan control under Linux. |
+| [Diagnosing a Failing SSD](docs/diagnosing-a-failing-ssd.md) | A "the VM is slow" complaint traced across four days and two OS reinstalls to an SSD whose **write path had failed while reads ran at 1.1 GB/s** — passing SMART throughout. Ten hypotheses, each eliminated with a measurement, plus a conclusion I got wrong and had to correct. |
 
-## What this lab demonstrates
+## Architecture
 
-| Capability | How it shows up here |
+### WEST
+- **PA440-LAB** (Palo Alto PA-440) — WAN, WEST-LAN, and VPN zones. `ae1` LACP bundle down to the distribution switch on `10.255.20.0/30`. Terminates the IPsec tunnel on `tunnel.1`.
+- **LAB-CISCO-3560CG-2** — distribution and gateway. VLAN 20 data, VLAN 99 management. `Port-channel1` up to the PA-440; static EtherChannel down to the Catalyst 2940.
+- **C2940-LAB** — access. 2003-vintage Fast Ethernet; its IOS image has no LACP support, so the uplink is a static EtherChannel.
+- **PROX-LAB** — Proxmox VE on a 2013 Mac Pro. VLAN-aware bridging into the fabric trunk; services run as LXC containers and VMs.
+- **CA-CENTOS-LAB** — dual-homed jumpbox.
+
+### EAST
+- **SRX345-LAB** (Juniper SRX345) — trust, untrust, and vpn zones. `ae0` LACP bundle on `10.255.10.0/30`. Terminates the tunnel on `st0.0`.
+- **LAB-CISCO-3560CG-1** — distribution and gateway. VLAN 10 data, VLAN 99 management. LACP bundle to the Arista.
+- **ARISTA710P-LAB** — access.
+- **CA-WIN-LAB** — dual-homed jumpbox.
+
+### Addressing
+
+| Plane | Range |
 |---|---|
-| **Multi-vendor fluency** | Four network OSes in one fabric: Palo Alto PAN-OS, Cisco IOS, Juniper Junos, Arista EOS — plus Proxmox/Debian on the compute side |
-| **Dual-site routing design** | Flat OSPF area 0 unified across a route-based IKEv2 IPsec tunnel (PA-440 ⇄ SRX345); firewalls inject default routes as Type-5 LSAs |
-| **Capability-matched link aggregation** | LACP where both ends speak it (SRX⇄3560CG, 3560CG⇄Arista), static EtherChannel where hardware predates it (Catalyst 2940) |
-| **Plane separation** | Dedicated management VLAN/subnets (`10.99.x.x`) apart from data (`10.x.1.x` / `10.20.2.x`) and transit (`10.255.x.x`) — consistent addressing plan fleet-wide |
-| **Resilient access design** | Dual-homed jumpboxes (one default gateway + static lab routes), redundant trunked access switches per site |
-| **Real remote access** | Routed (non-NATed) WireGuard VPN with the client pool redistributed into OSPF — see the dedicated repo below |
+| Data | `10.10.1.0/24` (EAST) · `10.20.2.0/24` (WEST) |
+| Management | `10.99.x.x` — per-site /24s plus device loopbacks in `10.99.0.0/24` |
+| Transit / tunnel | `10.255.x.x` — /30 point-to-point links and OSPF router IDs |
+| VPN clients | `10.50.1.0/24`, redistributed into OSPF |
 
-## Architecture at a glance
+Management and transit follow a strict scheme. The two data subnets do not share
+a third octet — an early inconsistency I kept rather than renumber a working
+fabric.
 
-- **WEST site:** PA-440 firewall → Cisco 3560CG distribution (VLAN 20 data,
-  VLAN 99 mgmt) → Catalyst 2940 access, Proxmox VE host (2013 Mac Pro), CentOS
-  jumpbox
-- **EAST site:** SRX345 firewall → Cisco 3560CG distribution (VLAN 10 data,
-  VLAN 99 mgmt) → Arista 710P access, Windows jumpbox
-- **Inter-site:** route-based IPsec (IKEv2, AES-256-GCM, PFS), OSPF adjacency
-  through the tunnel — one contiguous routing domain, MTU handled deliberately
-  (1400 tunnel / 1380 for nested overlays)
-- **Compute:** Proxmox VE with VLAN-aware bridging into the fabric trunk;
-  services deployed as LXC containers and VMs (second node planned — cluster +
-  quorum device)
+## Management access
 
-## Projects
+Access to network devices is restricted to the two jumpboxes and the management
+plane. Nothing else, including the domain controller — a domain controller is
+Tier 0, and access should not flow outward from it.
 
-| Repo | Status | What it is |
+The same policy is enforced in four syntaxes:
+
+| Vendor | Mechanism | Denial behaviour |
 |---|---|---|
-| [homelab-wireguard](https://github.com/117caseyallen-NetAdm/homelab-wireguard) | ✅ Live | Routed WireGuard remote-access VPN: unprivileged LXC behind the PA-440, client pool redistributed into OSPF, reachable across the IPsec tunnel. Build notes + troubleshooting war stories included |
-| *(this repo)* | 🔄 Evolving | Fabric overview and canonical topology |
+| Cisco IOS (modern) | Named ACL + `access-class` on vty | TCP reset — client sees "connection refused" |
+| Cisco IOS 12.1 | Numbered ACL — sequence numbers unsupported on that release | TCP reset |
+| Juniper Junos | `host-inbound-traffic` per zone, plus a `PROTECT-RE` filter on `lo0` | Silent discard — client sees a timeout |
+| Palo Alto PAN-OS | Interface Management Profile with `permitted-ip` | Silent discard |
+
+Two denial behaviours that look identical from the client and mean different
+things. Reading which one you got tells you which layer stopped you.
 
 ## Roadmap
 
-The goal is a complete, properly automated enterprise IT environment. In
-dependency order, the build plan:
+1. **Network operations** — Oxidized config backup to self-hosted Git, NetBox as source of truth, LibreNMS, centralized syslog
+2. **AAA** — TACACS+ for device administration backed by AD, RADIUS for 802.1X
+3. **Security operations** — SIEM ingesting firewall and host logs, IDS on a mirrored port, guest/IoT segmentation
+4. **NetDevOps** — Batfish snapshot validation and Suzieq runtime state in a CI pipeline: config change → PR → behavioural diff → automated deploy → post-change validation
+5. **Platform** — second Proxmox node, cluster with quorum device, backup server
 
-1. **Platform** — second Proxmox node, cluster + QDevice, Proxmox Backup Server
-2. **Identity & core services** — Windows Server AD DS/DNS/DHCP for
-   `casey.corp`, internal PKI (step-ca), 802.1X wired auth via RADIUS across
-   all four switch vendors
-3. **Network operations** — Oxidized config backup → self-hosted Git (Gitea),
-   NetBox as source of truth, LibreNMS monitoring, centralized syslog
-4. **Security operations** — SIEM ingesting firewall/host/network logs,
-   Suricata IDS on a mirrored port, per-client VPN firewall policy,
-   guest/IoT segmentation
-5. **NetDevOps** — Batfish snapshot validation, Suzieq runtime state, and a CI
-   pipeline: config change → PR → behavioral diff + compliance checks →
-   automated deploy (Nornir/NAPALM) → post-change validation
-
-Each phase ships with its own documented repo as it lands.
+Each phase ships with its own documented repo.
 
 ---
 
-*All addressing shown is internal RFC1918 — that's deliberate. No credentials,
-keys, public IPs, or DDNS hostnames appear in this repository.*
+*All addressing shown is internal RFC1918, deliberately. No credentials, keys,
+public IP addresses, or DDNS hostnames appear in this repository.*
