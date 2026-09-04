@@ -10,9 +10,10 @@ Domain: `casey.corp`. Documentation here is updated as the lab changes.
 Part of a set: this hub · the [profile](https://github.com/117caseyallen-NetAdm)
 · and the project repos below.
 
-![CASEY-LAB Topology](topology/CA-LAB-Topo.svg)
+![CASEY-LAB Topology](topology/CA-LAB-Topo.png)
 
-*Source: [`topology/CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio)*
+*Editable source: [`CA-LAB-Topo.drawio`](topology/CA-LAB-Topo.drawio) ·
+scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 
 ## Projects
 
