@@ -108,8 +108,10 @@ Neighbor ID     Pri   State           Dead Time   Address         Interface
 - **Four OSPF routers**, identified by router ID: `10.255.0.1` (PA-440),
   `10.255.0.2` (SRX345), `10.255.0.3` (3560CG-1), `10.255.0.4` (3560CG-2).
 - **`FULL/  -` on the Cisco output.** The `-` where a DR/BDR role would appear
-  means no designated router is elected — the port-channels are configured
-  `ip ospf network point-to-point`.
+  means no designated router was elected — true of any OSPF network type that
+  skips the election, point-to-point or point-to-multipoint. Given the routed
+  `/30` on these port-channels it is `ip ospf network point-to-point` here, but
+  the dash alone doesn't tell you which.
 - **The Arista is not in this list, by design.** It is an access-layer switch
   with a static default route (`ip route 0.0.0.0/0 10.99.10.1`), not an OSPF
   speaker. `show ip ospf neighbor` on it returns nothing — expected, not a
