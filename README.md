@@ -84,6 +84,35 @@ The same policy is enforced in four syntaxes:
 | Juniper Junos | `host-inbound-traffic` per zone, plus a `PROTECT-RE` filter on `lo0` | Silent discard — client sees a timeout |
 | Palo Alto PAN-OS | Interface Management Profile with `permitted-ip` | Silent discard |
 
+### Reaching the devices is its own problem
+
+Four of the six won't accept a connection from a current OpenSSH client without
+help, and for two different reasons:
+
+| Devices | Offers | Client error | Needs |
+|---|---|---|---|
+| 3560CG-1, 3560CG-2 | SHA-1 key exchange only | `no matching key exchange method` | `KexAlgorithms +diffie-hellman-group14-sha1` |
+| C2940 (2003) | **`diffie-hellman-group1-sha1` only** — RFC 2409, 1024-bit | same | `+diffie-hellman-group1-sha1`, `+3des-cbc` |
+| PA-440 | modern key exchange, **`ssh-rsa` host key only** | `no matching host key type` | `HostKeyAlgorithms +ssh-rsa` |
+
+The two errors name different halves of the handshake — how the session key is
+derived, versus what the device proves its identity with — and telling them apart
+saves configuring the wrong thing.
+
+Worth knowing that this is **client policy, not a protocol limit**: the config
+backup tool reaches all four with no configuration at all, because it speaks SSH
+through a library that still implements those algorithms. Details in
+[homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup#ssh-what-failed-and-what-did-not).
+
+### A gap worth naming
+
+The PA-440 sources management services — NTP, DNS, syslog, updates — from its
+dedicated MGT interface rather than the dataplane routing table, and that port is
+uncabled here. The firewall is reachable in-band on its loopback, but it does not
+*send* service traffic from there, so it currently sits outside the NTP hierarchy
+([evidence](docs/verification.md#the-one-that-doesnt-work-pa440-lab)). The fix is
+a service route. The same gap will apply to syslog when central logging lands.
+
 ## Roadmap
 
 1. **Network operations** — ~~Oxidized config backup to self-hosted Git~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-config-backup)), NetBox as source of truth, LibreNMS, centralized syslog
