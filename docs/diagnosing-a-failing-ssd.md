@@ -307,11 +307,7 @@ compatibility, or relocating VM storage to external USB 3 / Thunderbolt 2.
    and queue depth are the real metrics.
 3. **SMART passing ≠ healthy drive.** Its thresholds detect imminent death, not
    degradation.
-4. **When a batch operation fails, reduce it to one variable.** A GUI reporting
-   "feature installation failed" hid that one Features-on-Demand component had
-   failed while the role I actually wanted was fine. Installing that single role
-   from the command line succeeded instantly.
-5. **Fixing something real doesn't mean fixing the right thing.** The RAM bump
+4. **Fixing something real doesn't mean fixing the right thing.** The RAM bump
    and the fan fix were both correct and both improved the system. Neither was
    the root cause. Resist declaring victory when a change helps.
 6. **Prove hardware last, and prove it properly.** It's the hardest conclusion to

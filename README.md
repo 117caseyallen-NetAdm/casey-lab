@@ -1,14 +1,16 @@
-# CASEY-LAB — Dual-Site Enterprise Homelab
+# CASEY-LAB — Dual-Site Multi-Vendor Homelab
 
-A dual-site enterprise network on physical hardware. Two firewalled sites joined
-into a single OSPF routing domain across a route-based IKEv2 IPsec tunnel, with
-separated data and management planes, aggregated uplinks, and a services layer
-that grows as I build it.
+Two firewalled sites on physical hardware, joined into one OSPF area 0 across a
+route-based IKEv2 IPsec tunnel, with separated data and management planes,
+aggregated uplinks, and a services layer that grows as I build it.
 
-Domain: `casey.corp`. Documentation here is updated as the lab changes.
+Both sites share one shelf and one internet uplink — the tunnel runs between the
+firewalls' outside interfaces across the home router's LAN, which stands in for a
+WAN. The routing and the vendor behaviour are real; the distance is not.
 
-Part of a set: this hub · the [profile](https://github.com/117caseyallen-NetAdm)
-· and the project repos below.
+Domain: `casey.corp`. Services are added continuously and these documents track
+the fabric as it changes — the commit history is the changelog.
+[Profile](https://github.com/117caseyallen-NetAdm) · project repos below.
 
 ![CASEY-LAB Topology](topology/CA-LAB-Topo.png)
 
@@ -19,6 +21,7 @@ scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 
 | Repo | What it covers |
 |---|---|
+| [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup) | Oxidized → Gitea for six devices and four vendor models; commits only on change, pushes unattended. Runs from the management VLAN — the trade-off is under *Management access* below. The write-up covers why the three oldest switches needed no SSH workarounds and the newest one did |
 | [homelab-domain-services](https://github.com/117caseyallen-NetAdm/homelab-domain-services) | AD DS, AD-integrated DNS with forward and reverse zones, DHCP with cross-site relay, time hierarchy, cross-site domain join |
 | [homelab-wireguard](https://github.com/117caseyallen-NetAdm/homelab-wireguard) | Routed (non-NATed) WireGuard VPN, client pool redistributed into OSPF |
 
@@ -26,7 +29,8 @@ scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 
 | Document | What it covers |
 |---|---|
-| [Diagnosing a Failing SSD](docs/diagnosing-a-failing-ssd.md) | A "the VM is slow" complaint traced across four days and two OS reinstalls to an SSD whose **write path had failed while reads ran at 1.1 GB/s** — passing SMART throughout. Ten hypotheses, each eliminated with a measurement, plus a conclusion I got wrong and had to correct. |
+| [Verification](docs/verification.md) | Live output for each claim on this page: OSPF adjacency across the tunnel, both default-route Type-5 LSAs, the VPN pool from origin route to far-site route table, IKE and IPsec SAs from both ends, LACP and static bundles, NTP. Captured 2026-09-13 |
+| [Diagnosing a Failing SSD](docs/diagnosing-a-failing-ssd.md) | A "the VM is slow" complaint traced across four days and two OS reinstalls to an SSD whose write path had failed while reads ran at 1.1 GB/s, passing SMART throughout. Ten hypotheses, each eliminated with a measurement, plus a conclusion I got wrong and had to correct |
 
 ## Architecture
 
@@ -34,7 +38,9 @@ scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 - **PA440-LAB** (Palo Alto PA-440) — WAN, WEST-LAN, and VPN zones. `ae1` LACP bundle down to the distribution switch on `10.255.20.0/30`. Terminates the IPsec tunnel on `tunnel.1`.
 - **LAB-CISCO-3560CG-2** — distribution and gateway. VLAN 20 data, VLAN 99 management. `Port-channel1` up to the PA-440; static EtherChannel down to the Catalyst 2940.
 - **C2940-LAB** — access. 2003-vintage Fast Ethernet; its IOS image has no LACP support, so the uplink is a static EtherChannel.
-- **PROX-LAB** — Proxmox VE on a 2013 Mac Pro. VLAN-aware bridging into the fabric trunk; services run as LXC containers and VMs.
+- **PROX-LAB** — Proxmox VE on a 2013 Mac Pro. VLAN-aware bridging into the fabric trunk; services run as LXC containers and VMs on two stacked bridges, one per plane:
+  - on the data VLAN: **CA-DC-01** (AD DS, DNS, DHCP, and the fabric's NTP authority) and **CA-WG-LAB** (WireGuard)
+  - on the management VLAN: **CA-OXI-LAB** (Oxidized config backup) and **CA-GIT-LAB** (Gitea) — see *Management access* below for why they live there
 - **CA-CENTOS-LAB** — dual-homed jumpbox.
 
 ### EAST
@@ -62,6 +68,13 @@ Access to network devices is restricted to the two jumpboxes and the management
 plane. Nothing else, including the domain controller — a domain controller is
 Tier 0, and access should not flow outward from it.
 
+Management *tooling* lives on the management plane itself. The config-backup and
+Git containers sit in `10.99.20.0/24`, which the permit lists already include, so
+they reached every device with no ACL changes across four syntaxes. The cost is
+that the subnet is now a trust boundary: only management tooling is allowed on
+it, and if that discipline slips the permit lists have to become host-based.
+Detail in [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup#placement-management-vlan-no-acl-changes).
+
 The same policy is enforced in four syntaxes:
 
 | Vendor | Mechanism | Denial behaviour |
@@ -71,20 +84,15 @@ The same policy is enforced in four syntaxes:
 | Juniper Junos | `host-inbound-traffic` per zone, plus a `PROTECT-RE` filter on `lo0` | Silent discard — client sees a timeout |
 | Palo Alto PAN-OS | Interface Management Profile with `permitted-ip` | Silent discard |
 
-Two denial behaviours that look identical from the client and mean different
-things. Reading which one you got tells you which layer stopped you.
-
 ## Roadmap
 
-1. **Network operations** — Oxidized config backup to self-hosted Git, NetBox as source of truth, LibreNMS, centralized syslog
+1. **Network operations** — ~~Oxidized config backup to self-hosted Git~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-config-backup)), NetBox as source of truth, LibreNMS, centralized syslog
 2. **AAA** — TACACS+ for device administration backed by AD, RADIUS for 802.1X
 3. **Security operations** — SIEM ingesting firewall and host logs, IDS on a mirrored port, guest/IoT segmentation
 4. **NetDevOps** — Batfish snapshot validation and Suzieq runtime state in a CI pipeline: config change → PR → behavioural diff → automated deploy → post-change validation
 5. **Platform** — second Proxmox node, cluster with quorum device, backup server
 
-Each phase ships with its own documented repo.
-
 ---
 
-*All addressing shown is internal RFC1918, deliberately. No credentials, keys,
-public IP addresses, or DDNS hostnames appear in this repository.*
+*Internal RFC1918 addressing and hostnames are real. No credentials, keys, public
+addresses, or device configurations appear in this repository.*
