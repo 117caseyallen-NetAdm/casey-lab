@@ -1,4 +1,4 @@
-﻿<mxfile host="Electron">
+<mxfile host="Electron">
   <diagram name="Page-1" id="A1iY_fMDhxkJPVEfMY9D">
     <mxGraphModel dx="758" dy="1763" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
@@ -321,7 +321,7 @@
             <mxRectangle height="27" width="135" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="VF0eOwAEPUuAt-X209Xc-71" parent="VF0eOwAEPUuAt-X209Xc-69" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;strokeColor=inherit;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" value="10.x.1.x" vertex="1">
+        <mxCell id="VF0eOwAEPUuAt-X209Xc-71" parent="VF0eOwAEPUuAt-X209Xc-69" style="shape=partialRectangle;html=1;whiteSpace=wrap;connectable=0;strokeColor=inherit;overflow=hidden;fillColor=none;top=0;left=0;bottom=0;right=0;pointerEvents=1;" value="10.10.1.x / 10.20.2.x" vertex="1">
           <mxGeometry height="27" width="135" x="135" as="geometry">
             <mxRectangle height="27" width="135" as="alternateBounds" />
           </mxGeometry>
@@ -361,7 +361,7 @@
         <mxCell id="agK01JaFwni6O_PH3-7y-2" parent="1" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Active_Directory.svg;" value="" vertex="1">
           <mxGeometry height="25" width="25" x="140" y="729" as="geometry" />
         </mxCell>
-      </root>
+      <mxCell id="cl20260913-guests" value="&lt;b&gt;Proxmox VE guests&lt;/b&gt;&lt;br&gt;CT101 CA-WG-LAB 10.20.2.50&lt;br&gt;&amp;nbsp;&amp;nbsp;WireGuard&lt;br&gt;VM200 CA-DC-01 10.20.2.5&lt;br&gt;&amp;nbsp;&amp;nbsp;AD DS / DNS / DHCP / NTP&lt;br&gt;CT102 CA-OXI-LAB 10.99.20.30&lt;br&gt;&amp;nbsp;&amp;nbsp;Oxidized (config backup)&lt;br&gt;CT103 CA-GIT-LAB 10.99.20.31&lt;br&gt;&amp;nbsp;&amp;nbsp;Gitea" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;" vertex="1" parent="1"><mxGeometry x="44" y="772" width="150" height="118" as="geometry" /></mxCell></root>
     </mxGraphModel>
   </diagram>
 </mxfile>
