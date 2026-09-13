@@ -179,7 +179,7 @@
         <mxCell id="3Wk2HZTCyIk3VIV9rc5B-6" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Windows Jumpbox" vertex="1">
           <mxGeometry height="30" width="60" x="570" y="1000" as="geometry" />
         </mxCell>
-        <mxCell id="3Wk2HZTCyIk3VIV9rc5B-7" value="PROX-LAB&#10;Mac Pro &#183; Proxmox VE" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=10;" vertex="1" parent="1"><mxGeometry x="2" y="728" width="132" height="34" as="geometry" /></mxCell>
+        <mxCell id="3Wk2HZTCyIk3VIV9rc5B-7" value="PROX-LAB&#10;Mac Pro&#10;Proxmox VE" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=top;rounded=0;fontSize=10;" vertex="1" parent="1"><mxGeometry x="46" y="728" width="90" height="46" as="geometry" /></mxCell>
         <mxCell id="3Wk2HZTCyIk3VIV9rc5B-8" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;fontSize=11;" value="Ge 0/1" vertex="1">
           <mxGeometry height="30" width="60" x="275" y="820" as="geometry" />
         </mxCell>
@@ -359,7 +359,7 @@
         <mxCell id="agK01JaFwni6O_PH3-7y-2" parent="1" style="image;sketch=0;aspect=fixed;html=1;points=[];align=center;fontSize=12;image=img/lib/mscae/Active_Directory.svg;" value="" vertex="1">
           <mxGeometry height="25" width="25" x="140" y="729" as="geometry" />
         </mxCell>
-      <mxCell id="cl20260913-guests" value="&lt;b&gt;Proxmox VE guests&lt;/b&gt;&lt;br&gt;CT101 CA-WG-LAB 10.20.2.50&lt;br&gt;&amp;nbsp;&amp;nbsp;WireGuard&lt;br&gt;VM200 CA-DC-01 10.20.2.5&lt;br&gt;&amp;nbsp;&amp;nbsp;AD DS / DNS / DHCP / NTP&lt;br&gt;CT102 CA-OXI-LAB 10.99.20.30&lt;br&gt;&amp;nbsp;&amp;nbsp;Oxidized (config backup)&lt;br&gt;CT103 CA-GIT-LAB 10.99.20.31&lt;br&gt;&amp;nbsp;&amp;nbsp;Gitea" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;" vertex="1" parent="1"><mxGeometry x="16" y="768" width="150" height="118" as="geometry" /></mxCell></root>
+      <mxCell id="cl20260913-guests" value="&lt;b&gt;Proxmox VE guests&lt;/b&gt;&lt;br&gt;CT101 CA-WG-LAB 10.20.2.50&lt;br&gt;&amp;nbsp;&amp;nbsp;WireGuard&lt;br&gt;VM200 CA-DC-01 10.20.2.5&lt;br&gt;&amp;nbsp;&amp;nbsp;AD DS / DNS / DHCP / NTP&lt;br&gt;CT102 CA-OXI-LAB 10.99.20.30&lt;br&gt;&amp;nbsp;&amp;nbsp;Oxidized (config backup)&lt;br&gt;CT103 CA-GIT-LAB 10.99.20.31&lt;br&gt;&amp;nbsp;&amp;nbsp;Gitea" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;verticalAlign=top;fontSize=9;" vertex="1" parent="1"><mxGeometry x="46" y="780" width="168" height="118" as="geometry" /></mxCell></root>
     </mxGraphModel>
   </diagram>
 </mxfile>
