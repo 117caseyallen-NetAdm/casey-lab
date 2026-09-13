@@ -1,6 +1,6 @@
 # Diagnosing a Failing SSD — Ten Wrong Answers and One Decisive Test
 
-> **Part of [CASEY-LAB](../README.md)** — a dual-site, multi-vendor enterprise
+> **Part of [CASEY-LAB](../README.md)** — a dual-site, multi-vendor
 > homelab. This is a troubleshooting log, kept because the symptoms were generic
 > and every early hypothesis was wrong for an interesting reason.
 

@@ -19,7 +19,7 @@ the two firewalls' outside interfaces across the home router's LAN, which stands
 in for a WAN. The routing, the tunnel, and the vendor behaviour are real; the
 distance is not.
 
-**Devices:** PA-440 (PAN-OS) · SRX345 (Junos 20.2R3) · 2× Catalyst 3560CG
+**Devices:** PA-440 (PAN-OS) · SRX345 (Junos 20.2R3-S2.5) · 2× Catalyst 3560CG
 (IOS 15.0) · Catalyst 2940 (IOS 12.1, 2003) · Arista 710P (EOS 4.30.4M).
 
 ---
