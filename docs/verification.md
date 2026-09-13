@@ -3,9 +3,13 @@
 Everything in this repository's README makes claims about how the lab behaves.
 This document is the evidence for those claims, captured from the live devices.
 
-Output is verbatim, including prompts. One substitution: the firewalls' outside
-addresses are replaced with `[edge-west]` / `[edge-east]`. Where output is cut,
-the cut is marked `[...]`.
+Output is verbatim, including prompts, with three exceptions stated wherever they
+occur:
+
+- the firewalls' outside addresses are replaced with `[edge-west]` / `[edge-east]`
+- where output is cut, the cut is marked `[...]`
+- PAN-OS tables run past 200 characters, so their **padding** is compressed to
+  fit. No column is dropped and no value is altered.
 
 Captured **2026-09-13**, immediately after the NTP hierarchy was built, so the
 device clocks are synchronised and the timestamps are comparable.
@@ -54,16 +58,36 @@ far site, formed over the tunnel.
 
 ```
 admin@PA440-LAB> show routing protocol ospf neighbor
+
+  Options: 0x80:reserved, O:Opaq-LSA capability, DC:demand circuits, EA:Ext-Attr LSA capability,
+           N/P:NSSA option, MC:multicase, E:AS external LSA capability, T:TOS capability
+  ==========
+  virtual router:                default
   neighbor address:              10.255.20.2
+  local address binding:         0.0.0.0
+  type:                          dynamic
   status:                        full
   neighbor router ID:            10.255.0.4
   area id:                       0.0.0.0
+  neighbor priority:             1
+  lifetime remain:               39
+  messages pending:              0
+  LSA request pending:           0
+  options:                       0x52: O EA E
+  hello suppressed:              no
+  restart helper status:         not helping
+  restart helper time remaining: 0
+  restart helper exit reason:    none
   ==========
   neighbor address:              10.255.255.2
   status:                        full
   neighbor router ID:            10.255.0.2
   area id:                       0.0.0.0
+  [...]
 ```
+
+*PAN-OS prints sixteen fields per neighbour. The first is shown whole; the
+second is cut to the four that carry the claim.*
 
 **Both distribution switches:**
 
@@ -267,17 +291,25 @@ st0.0                   up    up   inet     10.255.255.2/30
 ```
 admin@PA440-LAB> show vpn ike-sa
 IKEv2 SAs
-Gateway ID  Peer-Address  Gateway Name  Role  Algorithm             Established      ST
-1           [edge-east]   GW-SRX        Init  PSK/DH14/A256/SHA256  Sep.13 02:09:08  Established
+Gateway ID  Peer-Address  Gateway Name  Role  SN  Algorithm             Established      Expiration       Xt  Child  ST
+1           [edge-east]   GW-SRX        Init  7   PSK/DH14/A256/SHA256  Sep.13 02:09:08  Sep.13 10:09:08  0   2      Established
+
+Show IKEv2 SA: Total 1 gateways found. 1 ike sa found.
 
 IKEv2 IPSec Child SAs
-Gateway Name  TnID  Tunnel          Parent  Role  SPI(in)   SPI(out)  ST
-GW-SRX        1     TUN-SRX:PROXY   7       Resp  FDE4BD0A  40E0E864  Mature
+Gateway Name  TnID  Tunnel         ID     Parent  Role  SPI(in)   SPI(out)  MsgID     ST
+GW-SRX        1     TUN-SRX:PROXY  26865  7       Resp  FDE4BD0A  40E0E864  00000004  Mature
 
 admin@PA440-LAB> show vpn ipsec-sa
-GwID  TnID  Peer-Address  Tunnel(Gateway)         Algorithm  SPI(in)   SPI(out)  life(Sec/KB)    remain-time(Sec)
-1     1     [edge-east]   TUN-SRX:PROXY(GW-SRX)   ESP/G256/  FDE4BD0A  40E0E864  3600/Unlimited  1827
+GwID  TnID  Peer-Address  Tunnel(Gateway)        Algorithm  SPI(in)   SPI(out)  life(Sec/KB)    remain-time(Sec)
+1     1     [edge-east]   TUN-SRX:PROXY(GW-SRX)  ESP/G256/  FDE4BD0A  40E0E864  3600/Unlimited  1827
+
+Show IPSec SA: Total 1 tunnels found. 1 ipsec sa found.
 ```
+
+*PAN-OS prints these tables over 200 characters wide. Column **content** is
+unchanged and no column is omitted; only the padding between them is compressed,
+so the block fits without a horizontal scrollbar.*
 
 ### What to notice — the SPIs match across two vendors
 
@@ -320,16 +352,33 @@ static EtherChannel where it does not — each choice matched to the device.
 
 ```
 LAB-CISCO-3560CG-1#show etherchannel summary
+Flags:  D - down        P - bundled in port-channel
+        I - stand-alone s - suspended
+        H - Hot-standby (LACP only)
+        R - Layer3      S - Layer2
+        U - in use      f - failed to allocate aggregator
+        M - not in use, minimum links not met
+        u - unsuitable for bundling
+        w - waiting to be aggregated
+        d - default port
+
+Number of channel-groups in use: 2
+Number of aggregators:           2
+
 Group  Port-channel  Protocol    Ports
 ------+-------------+-----------+-----------------------------------------------
 1      Po1(RU)         LACP      Gi0/1(P)    Gi0/2(P)
 2      Po2(SU)         LACP      Gi0/7(P)    Gi0/8(P)
 ```
 
+*The flag legend is identical on 3560CG-2 and near-identical on the 2940, so it
+is shown once and cut from the two blocks below — that cut is marked `[...]`.*
+
 **3560CG-2 (WEST) — LACP up to the firewall, static down to the 2940:**
 
 ```
 LAB-CISCO-3560CG-2#show etherchannel summary
+[...]
 Group  Port-channel  Protocol    Ports
 ------+-------------+-----------+-----------------------------------------------
 1      Po1(RU)         LACP      Gi0/2(P)    Gi0/3(P)
@@ -340,6 +389,7 @@ Group  Port-channel  Protocol    Ports
 
 ```
 C2940-LAB#show etherchannel summary
+[...]
 Group  Port-channel  Protocol    Ports
 ------+-------------+-----------+-----------------------------------------------
 1      Po1(SU)          -        Fa0/7(Pd)   Fa0/8(P)
@@ -377,6 +427,12 @@ Port Channel Port-Channel2:
 - **`Po1(RU)` vs `Po2(SU)`.** `R` = layer 3, `S` = layer 2, `U` = in use. The
   uplinks to the firewalls are routed port-channels carrying a `/30` — which is
   what lets OSPF run over them. The downlinks are switched trunks.
+- **`Fa0/7(Pd)` on the 2940** carries a second flag the other ports don't. Per
+  that switch's own legend, `P` is bundled and `d` is *default port*. It is
+  informational — both members show `P`, so both are in the bundle and
+  forwarding. Worth pointing at rather than leaving as an unexplained letter,
+  because on a *static* bundle there is no protocol to tell you a member is
+  wrong; the flags are all the feedback you get.
 - **`Fast` actor / `Slow` partner on the SRX.** The timeout bit states what the
   sender wants to *receive*. The SRX asks for fast, so the Cisco transmits every
   1 s and the SRX can declare a member dead in 3 s; the Cisco asks for slow, so
