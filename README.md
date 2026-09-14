@@ -34,6 +34,16 @@ scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 
 ## Architecture
 
+Physical hardware, not GNS3 or EVE-NG — a PA-440 and SRX345, two Catalyst
+3560-CGs, a 2003 Catalyst 2940, an Arista 710P-12, and a 2013 Mac Pro running
+Proxmox, all sharing one shelf.
+
+| | |
+|:--:|:--:|
+| ![The lab](photos/lab-rack-wide.jpg) | ![Switching detail — both 3560-CGs, the Catalyst 2940, and the Arista 710P-12](photos/lab-rack-detail.jpg) |
+
+![The PA-440 in the rack, MGT port cabled to the management VLAN, with the Proxmox host below](photos/lab-firewall-detail.jpg)
+
 ### WEST
 - **PA440-LAB** (Palo Alto PA-440) — WAN, WEST-LAN, and VPN zones. `ae1` LACP bundle down to the distribution switch on `10.255.20.0/30`. Terminates the IPsec tunnel on `tunnel.1`.
 - **LAB-CISCO-3560CG-2** — distribution and gateway. VLAN 20 data, VLAN 99 management. `Port-channel1` up to the PA-440; static EtherChannel down to the Catalyst 2940.
