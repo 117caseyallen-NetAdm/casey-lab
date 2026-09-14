@@ -114,14 +114,21 @@ backup tool reaches all four with no configuration at all, because it speaks SSH
 through a library that still implements those algorithms. Details in
 [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup#ssh-what-failed-and-what-did-not).
 
-### A gap worth naming
+### The management plane is a separate network
 
-The PA-440 sources management services — NTP, DNS, syslog, updates — from its
-dedicated MGT interface rather than the dataplane routing table, and that port is
-uncabled here. The firewall is reachable in-band on its loopback, but it does not
-*send* service traffic from there, so it currently sits outside the NTP hierarchy
-([evidence](docs/verification.md#the-one-that-doesnt-work-pa440-lab)). The fix is
-a service route. The same gap will apply to syslog when central logging lands.
+The PA-440 sources management services — NTP, DNS, syslog, updates, and later
+TACACS+ — from its dedicated MGT interface rather than the dataplane routing
+table. That port was uncabled here, so the firewall sat outside the NTP hierarchy
+while answering SSH perfectly well in-band on its loopback: being reachable *on*
+an interface does not make a box *send* from it.
+
+A service route fixed it, and the MGT port is now cabled into VLAN 99 at
+`10.99.20.2` so the whole category is retired rather than worked around — every
+one of those services would otherwise have hit the same wall.
+
+The [write-up](docs/verification.md#the-sixth-device-and-the-wrong-instrument)
+covers the part that took an hour: `show ntp` reported failure long after the fix
+had already worked, and the system log had said so the whole time.
 
 ## Roadmap
 

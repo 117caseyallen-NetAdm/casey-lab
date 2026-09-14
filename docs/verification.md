@@ -31,7 +31,7 @@ distance is not.
 3. [The VPN pool is redistributed into OSPF and reachable from the far site](#3-the-vpn-pool-is-redistributed-into-ospf-and-reachable-from-the-far-site)
 4. [The IPsec tunnel is up — and both ends agree on the SAs](#4-the-ipsec-tunnel-is-up--and-both-ends-agree-on-the-sas)
 5. [Link aggregation matched to what each device supports](#5-link-aggregation-matched-to-what-each-device-supports)
-6. [One time hierarchy across the fabric](#6-one-time-hierarchy-across-the-fabric) — and the one device that isn't in it
+6. [One time hierarchy across the fabric](#6-one-time-hierarchy-across-the-fabric) — and the device that took an hour to join it
 7. [What is deliberately *not* here](#7-what-is-deliberately-not-here)
 
 ---
@@ -446,8 +446,8 @@ Port Channel Port-Channel2:
 ## 6. One time hierarchy across the fabric
 
 **Claim:** the network devices synchronise to one internal authority, which
-itself follows several external sources. **Five of the six do. The sixth is
-below, with why.**
+itself follows several external sources. **All six do. The sixth is below,
+because how it got there is the more useful half.**
 
 ```
 External NTP — 4 peers, all leap-second stepping
@@ -508,32 +508,72 @@ C2940-LAB#show ntp associations
  * master (synced), # master (unsynced), + selected, - candidate, ~ configured
 ```
 
-### The one that doesn't work: PA440-LAB
+### The sixth device, and the wrong instrument
 
 ```
 admin@PA440-LAB> show ntp
 
 NTP state:
-    NTP not synched, using local clock
+    NTP synched to 10.20.2.5
     NTP server: 10.20.2.5
-        status: error
-        reachable: no
+        status: synched
+        reachable: yes
+        authentication-type: none
 ```
 
-Configured correctly, and `reachable: no`. Every other device on the same
-management plane reaches `10.20.2.5` without trouble, and the firewall itself is
-reachable in-band on `loopback.1` — this document was written over SSH to it.
+It did not start there, and the route to it is the most useful thing on this
+page.
 
-**The cause is a PAN-OS default, not a routing failure.** PAN-OS sources
-management-plane services — NTP, DNS, updates, syslog — from the dedicated
-**MGT interface**, independently of the dataplane routing table. The MGT port on
-this unit is uncabled, so the query never leaves the box. Being reachable *on* a
-loopback does not make the firewall send service traffic *from* it.
+**The original fault was real.** PAN-OS sources management-plane services — NTP,
+DNS, syslog, updates — from the dedicated **MGT interface**, independently of the
+dataplane routing table. That port was uncabled, so queries were handed to an
+interface with no link. `reachable: no` was literal, not a symptom. The firewall
+answered SSH on `loopback.1` throughout: being reachable *on* an interface does
+not make a box *send* from it.
 
-The fix is a **service route**: Device → Setup → Services → Service Route
-Configuration → NTP → source it from `loopback.1`. Not yet applied, so the
-firewall is running on its local clock and is the one device whose timestamps
-should not be trusted for correlation.
+**The fix was a service route** — Device → Setup → Services → Service Route
+Configuration → NTP → source `loopback.1` — and it worked **two minutes after
+the commit**:
+
+```
+2026/09/13 22:00:44 info ntpd time-le 0  NTP time learnt from 10.20.2.5;
+  New time is: Sun Sep 13 22:05:53 UTC 2026 and old time was Sun Sep 13 22:00:38 UTC 2026
+```
+
+`show ntp` went on reporting `status: error / reachable: no` for another hour.
+
+**Two things were wrong, and neither of them was the network:**
+
+1. **`reach` is a shift register that fills one bit per poll**, and the selection
+   algorithm will not commit to a peer until enough of it is set. `show ntp` was
+   not lying — it was accurately describing a client that had not yet converged.
+2. **`debug software restart process ntp` zeroes that register.** It was run
+   twice during diagnosis, each time discarding accumulated convergence and
+   restarting the clock on the very process being waited on. The sync landed
+   once the box was left alone for fifteen minutes. **When a protocol needs time
+   to converge, restarting it is the one intervention guaranteed to prevent the
+   outcome you are waiting for.**
+
+Evidence gathered along the way, each item eliminating a hypothesis rather than
+confirming one:
+
+| Command | What it ruled out |
+|---|---|
+| `show config running \| match 10.99.0.1` → 2 lines | "the commit didn't land". Note that `show` inside `configure` displays the **candidate**, and will agree with you either way |
+| Traffic log: `10.99.0.1 → 10.20.2.5 :123 allow WEST-intrazone` | "a zone policy is dropping it" — `loopback.1` is *in* `WEST-LAN` |
+| `Get-NetFirewallRule *W32Time* \| Get-NetFirewallAddressFilter` → `Any` | "the DC's firewall rule excludes the loopback subnet" |
+| Traffic log detail: **Packets Sent 1 / Packets Received 1** | "the DC isn't answering" |
+| `tcpdump filter "port 123"` → `NTPv4 Client` out, `NTPv3 Server` back in 0.4 ms | "it's a reachability problem" — it never was |
+| **`show log system \| match ntp`** | everything above |
+
+The MGT port is now cabled into VLAN 99 on 3560CG-2 at `10.99.20.2/24`, and the
+service route removed as unnecessary. That was worth doing regardless: TACACS+,
+DNS, syslog and content updates are all management-plane services, and every one
+of them would have met the same wall — TACACS+ in the especially unhelpful form
+of *"authentication failed,"* with nothing at all in the server's log.
+
+**A status command is an interpretation of state; a log is a record of events.
+When they disagree, read the log.**
 
 ### What to notice
 
