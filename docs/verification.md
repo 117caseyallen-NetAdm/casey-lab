@@ -19,8 +19,14 @@ the two firewalls' outside interfaces across the home router's LAN, which stands
 in for a WAN. The routing, the tunnel, and the vendor behaviour are real; the
 distance is not.
 
-**Devices:** PA-440 (PAN-OS) · SRX345 (Junos 20.2R3-S2.5) · 2× Catalyst 3560CG
-(IOS 15.0) · Catalyst 2940 (IOS 12.1, 2003) · Arista 710P (EOS 4.30.4M).
+**Devices:** PA-440 (PAN-OS 10.2.7) · SRX345 (Junos 20.2R3-S2.5) · 2× Catalyst
+3560CG (IOS 15.x; 3560CG-2 runs 15.2(2)E5) · Catalyst 2940 (IOS 12.1, 2003) ·
+Arista 710P (EOS 4.30.4M).
+
+**AAA evidence lives with the AAA build.** TACACS+ authentication, per-command
+authorization across four vendors, the fail-safe matrix and the console
+break-glass tests are in
+[homelab-tacacs-aaa/docs/verification.md](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa/blob/main/docs/verification.md).
 
 ---
 
