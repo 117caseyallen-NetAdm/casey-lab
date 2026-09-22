@@ -4,15 +4,15 @@
 > homelab. This is a troubleshooting log, kept because the symptoms were generic
 > and every early hypothesis was wrong for an interesting reason.
 
-**System:** Proxmox VE on an Apple Mac Pro (MacPro6,1, 2013) — Xeon E5-1650 v2,
-31 GB RAM, Apple SSD SM1024F (1 TB, AHCI-over-PCIe via a Samsung S4LN053X01
-controller — *not* SATA, which matters later)
-**Presenting symptom:** "the Windows VM is slow"
-**Actual cause:** SSD write-path failure — reads at **1.1 GB/s**, writes at
-**1.9 MB/s**
-**Cost of getting there:** four days, two full OS reinstalls, and one wrong
-conclusion I had to walk back — documented below, because the correction is the
-most useful part
+- **System:** Proxmox VE on an Apple Mac Pro (MacPro6,1, 2013) — Xeon E5-1650 v2,
+  31 GB RAM, Apple SSD SM1024F (1 TB, AHCI-over-PCIe via a Samsung S4LN053X01
+  controller — *not* SATA, which matters later)
+- **Presenting symptom:** "the Windows VM is slow"
+- **Actual cause:** SSD write-path failure — reads at **1.1 GB/s**, writes at
+  **1.9 MB/s**
+- **Cost of getting there:** four days, two full OS reinstalls, and one wrong
+  conclusion I had to walk back — documented below, because the correction is
+  the most useful part
 
 ---
 
@@ -310,7 +310,7 @@ compatibility, or relocating VM storage to external USB 3 / Thunderbolt 2.
 4. **Fixing something real doesn't mean fixing the right thing.** The RAM bump
    and the fan fix were both correct and both improved the system. Neither was
    the root cause. Resist declaring victory when a change helps.
-6. **Prove hardware last, and prove it properly.** It's the hardest conclusion to
+5. **Prove hardware last, and prove it properly.** It's the hardest conclusion to
    reach honestly, because it requires convincing yourself that every software
    layer above it is innocent first.
 
