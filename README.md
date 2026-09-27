@@ -21,6 +21,7 @@ scalable vector: [`CA-LAB-Topo.svg`](topology/CA-LAB-Topo.svg)*
 
 | Repo | What it covers |
 |---|---|
+| [homelab-network-automation](https://github.com/117caseyallen-NetAdm/homelab-network-automation) | Ansible compliance and remediation across IOS 15.x and 12.1, EOS and Junos: an audit written as data, fixes that are dry-run first and idempotent, and a deploy account whose every command the TACACS+ server authorizes from an allowlist. The write-up covers the account being silently root, the automation library asking for a root shell, and why `--check` proved intent rather than feasibility on IOS |
 | [homelab-tacacs-aaa](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa) | Centralized device AAA: one `tac_plus-ng` server backed by AD, authenticating and authorizing all six devices across four vendors, with per-command accounting. The write-up covers why "fall back to local" meant three different things on four vendors, and five things that were configured correctly and didn't work |
 | [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup) | Oxidized → Gitea for six devices and four vendor models; commits only on change, pushes unattended, now as a read-only TACACS+ service account. Runs from the management VLAN — the trade-off is under *Management access* below. The write-up covers why the three oldest switches needed no SSH workarounds and the newest one did |
 | [homelab-domain-services](https://github.com/117caseyallen-NetAdm/homelab-domain-services) | AD DS, AD-integrated DNS with forward and reverse zones, DHCP with cross-site relay, time hierarchy, cross-site domain join |
@@ -51,7 +52,7 @@ Proxmox, all sharing one shelf.
 - **C2940-LAB** — access. 2003-vintage Fast Ethernet; its IOS image has no LACP support, so the uplink is a static EtherChannel.
 - **PROX-LAB** — Proxmox VE on a 2013 Mac Pro. VLAN-aware bridging into the fabric trunk; services run as LXC containers and VMs on two stacked bridges, one per plane:
   - on the data VLAN: **CA-DC-01** (AD DS, DNS, DHCP, and the fabric's NTP authority) and **CA-WG-LAB** (WireGuard)
-  - on the management VLAN: **CA-OXI-LAB** (Oxidized config backup), **CA-GIT-LAB** (Gitea) and **CA-TAC-LAB** (TACACS+ and the log collector) — see *Management access* below for why they live there
+  - on the management VLAN: **CA-OXI-LAB** (Oxidized config backup), **CA-GIT-LAB** (Gitea), **CA-TAC-LAB** (TACACS+ and the log collector) and **CA-ANS-LAB** (Ansible) — see *Management access* below for why they live there
   - every guest backed up nightly to a second physical machine over NFS, three generations kept, with a test restore to prove the archives work
 - **CA-CENTOS-LAB** — dual-homed jumpbox.
 
@@ -83,13 +84,18 @@ Tier 0, and access should not flow outward from it.
 *Who* may log in is decided centrally. All six devices authenticate
 administrators against Active Directory through TACACS+, map AD group membership
 to privilege, and record every command on five of the six. The backup tool logs
-in as a read-only service account. Each device keeps one local break-glass
-account, tested over a console cable, for when the server can't be reached.
-Detail in [homelab-tacacs-aaa](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa).
+in as a read-only service account. Automation that changes devices logs in as a
+deploy account whose permissions are a short command allowlist, enforced by the
+server one command at a time — so a playbook that asks for anything else is
+refused, whatever it says. Each device keeps one local break-glass account,
+tested over a console cable, for when the server can't be reached. Detail in
+[homelab-tacacs-aaa](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa)
+and [homelab-network-automation](https://github.com/117caseyallen-NetAdm/homelab-network-automation).
 
-Management *tooling* lives on the management plane itself. The config-backup and
-Git containers sit in `10.99.20.0/24`, which the permit lists already include, so
-they reached every device with no ACL changes across four syntaxes. The cost is
+Management *tooling* lives on the management plane itself. The config-backup,
+Git, AAA and Ansible containers sit in `10.99.20.0/24`, which the permit lists
+already include, so they reached every device with no ACL changes across four
+syntaxes. The cost is
 that the subnet is now a trust boundary: only management tooling is allowed on
 it, and if that discipline slips the permit lists have to become host-based.
 Detail in [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup#placement-management-vlan-no-acl-changes).
@@ -123,6 +129,12 @@ backup tool reaches all four with no configuration at all, because it speaks SSH
 through a library that still implements those algorithms. Details in
 [homelab-config-backup](https://github.com/117caseyallen-NetAdm/homelab-config-backup#ssh-what-failed-and-what-did-not).
 
+The Ansible control node met the same wall from the other side. The current
+major release of its SSH library has *deleted* SHA-1 key exchange, so it pins an
+older one — and a later check showed the pin was stricter than it needed to be.
+Details in
+[homelab-network-automation](https://github.com/117caseyallen-NetAdm/homelab-network-automation/blob/main/docs/findings.md#1-the-fix-for-the-oldest-switches-was-stricter-than-it-needed-to-be).
+
 ### The management plane is a separate network
 
 The PA-440 sources management services — NTP, DNS, syslog, updates and TACACS+
@@ -140,10 +152,10 @@ had already worked, and the system log had said so the whole time.
 
 ## Roadmap
 
-1. **Network operations** — ~~Oxidized config backup to self-hosted Git~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-config-backup)), NetBox as source of truth, SNMPv3 across the fleet, monitoring (Telegraf → VictoriaMetrics → Grafana), centralized syslog (collector running; SIEM pending)
+1. **Network operations** — ~~Oxidized config backup to self-hosted Git~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-config-backup)), NetBox as source of truth, SNMPv3 across the fleet, monitoring (Telegraf → VictoriaMetrics → Grafana), centralized syslog (all six devices forwarding; SIEM pending)
 2. **AAA** — ~~TACACS+ for device administration backed by AD~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa)), RADIUS for 802.1X, internal PKI so the directory lookups can move to LDAPS
 3. **Security operations** — SIEM ingesting firewall and host logs, IDS on a mirrored port, guest/IoT segmentation
-4. **NetDevOps** — Batfish snapshot validation and Suzieq runtime state in a CI pipeline: config change → PR → behavioural diff → automated deploy → post-change validation
+4. **NetDevOps** — ~~Ansible compliance audit and remediation under a least-privilege account~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-network-automation)), a Gitea Actions runner to drive it, then Batfish snapshot validation and Suzieq runtime state in the same pipeline: config change → PR → behavioural diff → automated deploy → post-change validation
 5. **Platform** — ~~nightly off-node backups~~ (done), second and third Proxmox nodes, cluster with quorum device
 
 ---
