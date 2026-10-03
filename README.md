@@ -154,9 +154,10 @@ had already worked, and the system log had said so the whole time.
 
 1. **Network operations** — ~~Oxidized config backup to self-hosted Git~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-config-backup)), NetBox as source of truth, SNMPv3 across the fleet, monitoring (Telegraf → VictoriaMetrics → Grafana), centralized syslog (all six devices forwarding; SIEM pending)
 2. **AAA** — ~~TACACS+ for device administration backed by AD~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-tacacs-aaa)), RADIUS for 802.1X, internal PKI so the directory lookups can move to LDAPS
-3. **Security operations** — SIEM ingesting firewall and host logs, IDS on a mirrored port, guest/IoT segmentation
+3. **Security operations** — a written hardening baseline for every device (management plane, port configuration, firewall policy), reviewed from the config backups and enforced as compliance checks; SIEM ingesting firewall and host logs, IDS on a mirrored port, guest/IoT segmentation
 4. **NetDevOps** — ~~Ansible compliance audit and remediation under a least-privilege account~~ ([done](https://github.com/117caseyallen-NetAdm/homelab-network-automation)), a Gitea Actions runner to drive it, then Batfish snapshot validation and Suzieq runtime state in the same pipeline: config change → PR → behavioural diff → automated deploy → post-change validation
 5. **Platform** — ~~nightly off-node backups~~ (done), second and third Proxmox nodes, cluster with quorum device
+6. **Context plane** — read-only MCP servers for NetBox, Grafana, Gitea, Proxmox and live network state, so a language model can query inventory, topology, metrics and logs with no write access anywhere; topology diagrams generated from NetBox rather than drawn by hand
 
 ---
 
